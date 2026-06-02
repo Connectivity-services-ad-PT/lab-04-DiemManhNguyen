@@ -7,7 +7,7 @@ from pydantic import BaseModel, HttpUrl
 app = FastAPI(title="Smart Campus - AI Vision API", version="0.3.0")
 
 # Security
-AUTH_TOKEN = os.getenv("AUTH_TOKEN", "local-dev-token")
+AUTH_TOKEN = os.getenv("AUTH_TOKEN", "local-dev-token").strip()
 
 def verify_token(authorization: Optional[str] = Header(None)):
     if not authorization or not authorization.startswith("Bearer ") or authorization.split(" ")[1] != AUTH_TOKEN:
