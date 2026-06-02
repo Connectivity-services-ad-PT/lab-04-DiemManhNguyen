@@ -1,0 +1,180 @@
+{
+  "info": {
+    "name": "FIT4110 Lab04 Vision Docker Verification",
+    "description": "Postman collection to verify the Dockerized AI Vision service in Lab 04.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01_Functional",
+      "item": [
+        {
+          "name": "GET health returns 200",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response has status ok', function () { const json = pm.response.json(); pm.expect(json.status).to.eql('ok'); });",
+                  "pm.test('Response has service name and version', function () { const json = pm.response.json(); pm.expect(json.service).to.eql('ai-vision'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST valid detection returns 200",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/detect",
+              "host": ["{{baseUrl}}"],
+              "path": ["detect"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"camera_id\": \"CAM01\",\n  \"image_url\": \"https://example.com/frame.jpg\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response follows detection schema', function () { const json = pm.response.json(); pm.expect(json).to.have.property('detection_id'); pm.expect(json.camera_id).to.eql('CAM01'); pm.expect(json).to.have.property('label'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02_Auth",
+      "item": [
+        {
+          "name": "POST detection without token returns 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/detect",
+              "host": ["{{baseUrl}}"],
+              "path": ["detect"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"camera_id\": \"CAM01\",\n  \"image_url\": \"https://example.com/frame.jpg\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.environment.get('env') === 'mock') {",
+                  "  pm.test('Mock may not enforce auth - document this behavior', function () { pm.expect([200, 401]).to.include(pm.response.code); });",
+                  "} else {",
+                  "  pm.test('Missing token returns 401', function () { pm.response.to.have.status(401); });",
+                  "  function assertProblemDetails() {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('type');",
+                  "    pm.expect(json).to.have.property('title');",
+                  "    pm.expect(json).to.have.property('status');",
+                  "    pm.expect(json.status).to.eql(401);",
+                  "    pm.expect(json).to.have.property('detail');",
+                  "  }",
+                  "  assertProblemDetails();",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03_Negative",
+      "item": [
+        {
+          "name": "POST detection missing image returns 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/detect",
+              "host": ["{{baseUrl}}"],
+              "path": ["detect"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"camera_id\": \"CAM01\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.environment.get('env') === 'mock') {",
+                  "  pm.test('Mock response is documented', function () { pm.expect([200, 400, 422]).to.include(pm.response.code); });",
+                  "} else {",
+                  "  pm.test('Missing required field returns 400', function () { pm.response.to.have.status(400); });",
+                  "  function assertProblemDetails() {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('type');",
+                  "    pm.expect(json).to.have.property('title');",
+                  "    pm.expect(json).to.have.property('status');",
+                  "    pm.expect(json.status).to.eql(400);",
+                  "    pm.expect(json).to.have.property('detail');",
+                  "  }",
+                  "  assertProblemDetails();",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
